@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                     val viewModel: MainViewModel = viewModel(
                         factory = MainViewModel.Factory(app.repository, applicationContext)
                     )
-                    PesaTrackAppScreen(viewModel = viewModel)
+                    com.example.pesatrack.ui.navigation.RootNavigation(viewModel = viewModel)
                 }
             }
         }

@@ -37,6 +37,7 @@ fun BudgetCustomizationScreen(viewModel: MainViewModel) {
     var showCurrencyDialog by remember { mutableStateOf(false) }
     var showAddRecurringDialog by remember { mutableStateOf(false) }
     var showEditBudgetDialog by remember { mutableStateOf(false) }
+    val profile by viewModel.userProfile.collectAsState()
     var showEditNameDialog by remember { mutableStateOf(false) }
 
     val totalRecurring = recurringExpenses.filter { it.isActive }.sumOf { it.amount }
@@ -44,7 +45,12 @@ fun BudgetCustomizationScreen(viewModel: MainViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Budget & Customization", fontWeight = FontWeight.Bold) }
+                title = { Text("Budget & Customization", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = { viewModel.logout() }) {
+                        Icon(Icons.Default.Logout, contentDescription = "Sign Out", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -63,11 +69,28 @@ fun BudgetCustomizationScreen(viewModel: MainViewModel) {
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Profile & Regional Settings",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Profile & Account",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            AssistChip(
+                                onClick = { viewModel.logout() },
+                                label = { Text("Lock / Sign Out") },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            )
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // User Name Row
@@ -75,7 +98,7 @@ fun BudgetCustomizationScreen(viewModel: MainViewModel) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { showEditNameDialog = true }
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -85,11 +108,55 @@ fun BudgetCustomizationScreen(viewModel: MainViewModel) {
                                 Text("Name", style = MaterialTheme.typography.bodyLarge)
                             }
                             Text(
-                                text = userName,
+                                text = if (profile.fullName.isNotBlank()) profile.fullName else userName,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary
                             )
+                        }
+
+                        // Phone Number Row
+                        if (profile.phoneNumber.isNotBlank()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text("Phone", style = MaterialTheme.typography.bodyLarge)
+                                }
+                                Text(
+                                    text = profile.phoneNumber,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // Email Row
+                        if (profile.email.isNotBlank()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text("Email", style = MaterialTheme.typography.bodyLarge)
+                                }
+                                Text(
+                                    text = profile.email,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

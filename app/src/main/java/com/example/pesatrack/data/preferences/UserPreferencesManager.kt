@@ -38,16 +38,58 @@ object Currencies {
     fun getByCode(code: String): CurrencyInfo {
         return list.firstOrNull { it.code.equals(code, ignoreCase = true) } ?: list[0]
     }
+
+    fun getByCountry(country: String): CurrencyInfo {
+        return list.firstOrNull { it.country.equals(country, ignoreCase = true) } ?: list[0]
+    }
 }
+
+data class UserProfile(
+    val fullName: String,
+    val phoneNumber: String,
+    val email: String,
+    val country: String,
+    val isRegistered: Boolean,
+    val isLoggedIn: Boolean
+)
 
 class UserPreferencesManager(private val context: Context) {
 
     companion object {
         val KEY_CURRENCY_CODE = stringPreferencesKey("currency_code")
         val KEY_USER_NAME = stringPreferencesKey("user_name")
+        val KEY_PHONE_NUMBER = stringPreferencesKey("phone_number")
+        val KEY_EMAIL = stringPreferencesKey("email")
+        val KEY_COUNTRY = stringPreferencesKey("country")
+        val KEY_PASSWORD_HASH = stringPreferencesKey("password_hash")
+        val KEY_IS_REGISTERED = booleanPreferencesKey("is_registered")
+        val KEY_IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         val KEY_NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
         val KEY_BUDGET_ALERTS_ENABLED = booleanPreferencesKey("budget_alerts_enabled")
         val KEY_GOAL_REMINDERS_ENABLED = booleanPreferencesKey("goal_reminders_enabled")
+    }
+
+    val isRegisteredFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_IS_REGISTERED] ?: false
+    }
+
+    val isLoggedInFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_IS_LOGGED_IN] ?: false
+    }
+
+    val userProfileFlow: Flow<UserProfile> = context.dataStore.data.map { prefs ->
+        UserProfile(
+            fullName = prefs[KEY_USER_NAME] ?: "",
+            phoneNumber = prefs[KEY_PHONE_NUMBER] ?: "",
+            email = prefs[KEY_EMAIL] ?: "",
+            country = prefs[KEY_COUNTRY] ?: "Kenya",
+            isRegistered = prefs[KEY_IS_REGISTERED] ?: false,
+            isLoggedIn = prefs[KEY_IS_LOGGED_IN] ?: false
+        )
+    }
+
+    val storedPasswordHashFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[KEY_PASSWORD_HASH] ?: ""
     }
 
     val currencyCodeFlow: Flow<String> = context.dataStore.data.map { prefs ->
@@ -64,6 +106,32 @@ class UserPreferencesManager(private val context: Context) {
 
     val goalRemindersEnabledFlow: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[KEY_GOAL_REMINDERS_ENABLED] ?: true
+    }
+
+    suspend fun registerUser(
+        fullName: String,
+        phoneNumber: String,
+        email: String,
+        country: String,
+        currencyCode: String,
+        passwordHash: String
+    ) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_USER_NAME] = fullName
+            prefs[KEY_PHONE_NUMBER] = phoneNumber
+            prefs[KEY_EMAIL] = email
+            prefs[KEY_COUNTRY] = country
+            prefs[KEY_CURRENCY_CODE] = currencyCode
+            prefs[KEY_PASSWORD_HASH] = passwordHash
+            prefs[KEY_IS_REGISTERED] = true
+            prefs[KEY_IS_LOGGED_IN] = true
+        }
+    }
+
+    suspend fun setLoggedIn(loggedIn: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_IS_LOGGED_IN] = loggedIn
+        }
     }
 
     suspend fun setCurrency(currencyCode: String) {

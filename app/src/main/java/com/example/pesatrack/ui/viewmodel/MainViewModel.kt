@@ -41,7 +41,20 @@ class MainViewModel(
         }
     }
 
-    // User preferences
+    // User preferences & Authentication
+    val userProfile: StateFlow<com.example.pesatrack.data.preferences.UserProfile> = repository.userPreferences.userProfileFlow
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            com.example.pesatrack.data.preferences.UserProfile("", "", "", "Kenya", false, false)
+        )
+
+    val isRegistered: StateFlow<Boolean> = repository.userPreferences.isRegisteredFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val isLoggedIn: StateFlow<Boolean> = repository.userPreferences.isLoggedInFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val currencyCode: StateFlow<String> = repository.userPreferences.currencyCodeFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
@@ -54,6 +67,42 @@ class MainViewModel(
     val currentCurrencyInfo: StateFlow<CurrencyInfo> = currencyCode.map { code ->
         Currencies.getByCode(code)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Currencies.list[0])
+
+    fun register(
+        fullName: String,
+        phoneNumber: String,
+        email: String,
+        country: String,
+        password: String
+    ) {
+        viewModelScope.launch {
+            val currency = Currencies.getByCountry(country)
+            val hash = com.example.pesatrack.util.SecurityUtil.hashPassword(password)
+            repository.userPreferences.registerUser(
+                fullName = fullName,
+                phoneNumber = phoneNumber,
+                email = email,
+                country = country,
+                currencyCode = currency.code,
+                passwordHash = hash
+            )
+        }
+    }
+
+    suspend fun login(inputPassword: String): Boolean {
+        val storedHash = repository.userPreferences.storedPasswordHashFlow.first()
+        val isValid = com.example.pesatrack.util.SecurityUtil.verifyPassword(inputPassword, storedHash)
+        if (isValid) {
+            repository.userPreferences.setLoggedIn(true)
+        }
+        return isValid
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            repository.userPreferences.setLoggedIn(false)
+        }
+    }
 
     // Active Period
     val activePeriod: StateFlow<BudgetPeriodEntity?> = repository.getActivePeriod()

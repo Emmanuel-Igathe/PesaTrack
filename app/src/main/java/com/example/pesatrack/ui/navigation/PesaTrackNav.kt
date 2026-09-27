@@ -1,11 +1,11 @@
 package com.example.pesatrack.ui.navigation
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -22,6 +22,50 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Goals : Screen("goals", "Goals", Icons.Default.Stars)
     object Reports : Screen("reports", "Reports", Icons.Default.BarChart)
     object Customization : Screen("customization", "Budget", Icons.Default.Tune)
+}
+
+@Composable
+fun RootNavigation(viewModel: MainViewModel) {
+    val isRegistered by viewModel.isRegistered.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsState()
+
+    var showRegisterManual by remember { mutableStateOf(false) }
+
+    Crossfade(targetState = Triple(isRegistered, isLoggedIn, showRegisterManual), label = "AuthNavigation") { (registered, loggedIn, manualRegister) ->
+        when {
+            // First time user or explicit register switch
+            !registered || manualRegister -> {
+                RegisterScreen(
+                    onRegisterSuccess = { name, phone, email, country, pass ->
+                        viewModel.register(name, phone, email, country, pass)
+                        showRegisterManual = false
+                    },
+                    onNavigateToLogin = {
+                        if (registered) {
+                            showRegisterManual = false
+                        }
+                    }
+                )
+            }
+            // Registered but locked / logged out
+            !loggedIn -> {
+                LoginScreen(
+                    userName = userProfile.fullName,
+                    onLogin = { pass ->
+                        viewModel.login(pass)
+                    },
+                    onNavigateToRegister = {
+                        showRegisterManual = true
+                    }
+                )
+            }
+            // Fully authenticated
+            else -> {
+                PesaTrackAppScreen(viewModel = viewModel)
+            }
+        }
+    }
 }
 
 @Composable
